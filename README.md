@@ -6,6 +6,7 @@
 
 ## Для проверки
 
-bastion_IP = 35.228.154.228
+bastion_IP = 35.228.154.228:10793
+
 someinternalhost_IP = 10.166.0.3
 
