@@ -10,3 +10,7 @@ bastion_IP = 35.228.154.228:10793
 
 someinternalhost_IP = 10.166.0.3
 
+## Интерфейс vpn-сервера
+
+https://35.228.154.228.sslip.io
+
