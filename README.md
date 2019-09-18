@@ -11,11 +11,25 @@ sgremyachikh Infra repository
 ```
 ssh decapapreta@35.228.154.228
 ```
+Работа с остальными виртуалками возможна при реализации форвардинга ключей локальной машины.
+Проверка
+```
+ssh-add -L
+The agent has no identities
+```
+Добавить ssh ключ в агент авторизации:
+```
+ssh-add ~/.ssh/appuser
+```
+
 Подключение к машине в серой сети:
 ```
 ssh -A -t decapapreta@35.228.154.228
 ```
-Подключение в web-интерфейсу VPN-сервера:
+## Для настройки vpn сервера на работу с https:
+При настройке сервера указать в поле Lets Encrypt Domain в виде <ip>.sslip.io
+
+Подключение в web-интерфейсу VPN-сервера с https:
 https://35.228.154.228.sslip.io/login
 
 
