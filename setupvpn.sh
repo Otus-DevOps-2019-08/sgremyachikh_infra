@@ -9,3 +9,4 @@ apt-get --assume-yes upgrade
 apt-get --assume-yes install pritunl mongodb-org
 systemctl start pritunl mongod
 systemctl enable pritunl mongod
+
