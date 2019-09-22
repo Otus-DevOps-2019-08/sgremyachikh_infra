@@ -63,4 +63,9 @@ ProxyCommand ssh -W %h:%p bastion
 bastion_IP = 35.228.154.228
 someinternalhost_IP = 10.166.0.5
 ```
+### Информация для тестов testapp
+```
+testapp_IP = 35.228.154.228
+testapp_port = 9292
+```
 
