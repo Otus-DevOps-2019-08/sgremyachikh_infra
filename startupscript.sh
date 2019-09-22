@@ -1,3 +1,4 @@
+#!/bin/bash
 curl https://raw.githubusercontent.com/Otus-DevOps-2019-08/sgremyachikh_infra/cloud-testapp/install_ruby.sh | bash
 curl https://raw.githubusercontent.com/Otus-DevOps-2019-08/sgremyachikh_infra/blob/cloud-testapp/install_mongodb.sh | bash
 curl https://raw.githubusercontent.com/Otus-DevOps-2019-08/sgremyachikh_infra/blob/cloud-testapp/deploy.sh | bash
