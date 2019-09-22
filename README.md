@@ -1,11 +1,7 @@
 # sgremyachikh_infra
 sgremyachikh Infra repository
 
-<<<<<<< HEAD
 # HW: GCP Знакомство с облачной инфраструктурой и облачными сервисами
-=======
-## GCP
->>>>>>> d2636f5da2326074c42fc0c9495819c8c9ba6866
 
 Созданы 2 инстанса микро в GCP, поднят впн сервер, настроен профиль пользователя для подклюении, сделан форвардинг ключей ssh для авторизации на машинах за бастионом, 
  
@@ -67,7 +63,6 @@ ProxyCommand ssh -W %h:%p bastion
 bastion_IP = 35.228.154.228
 someinternalhost_IP = 10.166.0.5
 ```
-<<<<<<< HEAD
 # HW : GCP Основные сервисы Google Cloud Platform (GCP)
 
 ## Команда для развертывания окружения приложения и последующего деплоя:
@@ -103,6 +98,4 @@ gcloud compute firewall-rules create default-puma-server\
 testapp_IP = 35.228.154.228
 testapp_port = 9292
 ```
-=======
->>>>>>> d2636f5da2326074c42fc0c9495819c8c9ba6866
 
