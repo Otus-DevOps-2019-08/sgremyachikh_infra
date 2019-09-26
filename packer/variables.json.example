@@ -1,0 +1,5 @@
+{
+	"project_id" : "ololo-project",
+	"source_image_family" : "arch_linux_for_kids",
+	"machine_type" : "mega_pc"
+}
