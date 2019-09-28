@@ -13,3 +13,10 @@ variable public_key_path {
 variable disk_image {
   description = "Disk image"
 }
+variable connection_key {
+  description = "private key for provisioners connection"
+}
+variable instance_zone {
+  description = "instance creation zone"
+  default     = "europe-west1-b"
+}
