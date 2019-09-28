@@ -132,3 +132,39 @@ image_family у получившегося reddit-full, дополнительн
 
 create-redditvm.sh в директории config-scripts запустит виртуальную машину из образа подготовленного в рамках этого ДЗ, из семейства reddit-full, запустит приложение в ВМ и создаст правило на фаерволе, если вдруг его нет.
 
+# HW : Практика Infrastructure as a Code (IaC)
+
+## В директории terraform созданы:
+
+files - директория с deploy.sh  puma.service, файлами для деплоя приложения и запуска через systemd
+main.tf  - основной файл конфигурации проекта
+outputs.tf  - файл параметров вывода 
+terraform.tfstate  - файл, описывающий состояние
+terraform.tfstate.backup  - файл бэкапа файла выше
+terraform.tfvars  - файл c реальным переменными проекта
+terraform.tfvars.example  - файл с вымешленными переменными проекта
+variables.tf - файл, описывающий input переменные
+
+## в .gitignore включены:
+
+/packer/variables.json
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+.terraform/
+
+## Читшит команд:
+
+Линт кода:
+```
+terraform validate
+```
+Планирование изменений:
+```
+terraform plan
+```
+Применение изменений
+```
+terraform apply
+```
