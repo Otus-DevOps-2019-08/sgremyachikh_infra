@@ -12,6 +12,13 @@ provider "google" {
 
   region = var.region
 }
+
+# Добавляю глобальную метадату в виде ключей своего юзера
+resource "google_compute_project_metadata_item" "ssh-keys" {
+  key   = "ssh-keys"
+  value = "decapapreta:${file(var.public_key_path)} appuser1:${file(var.public_key_path)} appuser2:${file(var.public_key_path)}"
+}
+
 resource "google_compute_instance" "app" {
   name         = "reddit-app"
   machine_type = "g1-small"
@@ -30,6 +37,7 @@ resource "google_compute_instance" "app" {
   metadata = {
     # путь до публичного ключа
     ssh-keys = "decapapreta:${file(var.public_key_path)}"
+  
   }
   connection {
     type  = "ssh"
@@ -47,7 +55,7 @@ resource "google_compute_instance" "app" {
     script = "files/deploy.sh"
   }
 }
-
+# Создаю правило на фаере
 resource "google_compute_firewall" "firewall_puma" {
   name = "allow-puma-default"
   # Название сети, в которой действует правило
@@ -62,3 +70,4 @@ resource "google_compute_firewall" "firewall_puma" {
   # Правило применимо для инстансов с перечисленными тэгами
   target_tags = ["reddit-app"]
 }
+

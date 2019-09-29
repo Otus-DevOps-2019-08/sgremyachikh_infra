@@ -168,3 +168,18 @@ terraform plan
 ```
 terraform apply
 ```
+## Задание со *
+
+В коде после указания провайдера до создания инстансов вы указали ресурс google_compute_project_metadata_item
+в нем указали аргумент и значения для добавления ключей пользователей для доступа к проекту
+
+Если в веб интерфейсе добавить еще какого-то пользователя, не описанного кодом, то его ssh ключ пропадет при следующем выполнении terraform apply
+
+Код добавления ключей юзеров в проект:
+```
+resource "google_compute_project_metadata_item" "ssh-keys" {
+  key   = "ssh-keys"
+  value = "decapapreta:${file(var.public_key_path)} appuser1:${file(var.public_key_path)} appuser2:${file(var.public_key_path)}"
+}
+```
+
