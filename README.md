@@ -98,6 +98,7 @@ gcloud compute firewall-rules create default-puma-server\
 testapp_IP = 35.228.154.228
 testapp_port = 9292
 ```
+
 # HW : Модели управления инфраструктурой
 
 В директории packer создан файл ubuntu16.json, описывающий создание образа с задаными параметрами. Параметры хранятся в соседнем variables.json
@@ -131,4 +132,55 @@ image_family у получившегося reddit-full, дополнительн
 
 create-redditvm.sh в директории config-scripts запустит виртуальную машину из образа подготовленного в рамках этого ДЗ, из семейства reddit-full, запустит приложение в ВМ и создаст правило на фаерволе, если вдруг его нет.
 
+
+# HW : Практика Infrastructure as a Code (IaC)
+
+## В директории terraform созданы:
+
+files - директория с deploy.sh  puma.service, файлами для деплоя приложения и запуска через systemd
+main.tf  - основной файл конфигурации проекта
+outputs.tf  - файл параметров вывода 
+terraform.tfstate  - файл, описывающий состояние
+terraform.tfstate.backup  - файл бэкапа файла выше
+terraform.tfvars  - файл c реальным переменными проекта
+terraform.tfvars.example  - файл с вымешленными переменными проекта
+variables.tf - файл, описывающий input переменные
+
+## в .gitignore включены:
+
+/packer/variables.json
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+.terraform/
+
+## Читшит команд:
+
+Линт кода:
+```
+terraform validate
+```
+Планирование изменений:
+```
+terraform plan
+```
+Применение изменений
+```
+terraform apply
+```
+## Задание со *
+
+В коде после указания провайдера до создания инстансов вы указали ресурс google_compute_project_metadata_item
+в нем указали аргумент и значения для добавления ключей пользователей для доступа к проекту
+
+Если в веб интерфейсе добавить еще какого-то пользователя, не описанного кодом, то его ssh ключ пропадет при следующем выполнении terraform apply
+
+Код добавления ключей юзеров в проект:
+```
+resource "google_compute_project_metadata_item" "ssh-keys" {
+  key   = "ssh-keys"
+  value = "decapapreta:${file(var.public_key_path)} appuser1:${file(var.public_key_path)} appuser2:${file(var.public_key_path)}"
+}
+```
 
