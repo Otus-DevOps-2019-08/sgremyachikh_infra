@@ -135,6 +135,12 @@ create-redditvm.sh в директории config-scripts запустит ви�
 
 # HW : Практика Infrastructure as a Code (IaC)
 
+### Дисклеймер: чтоб терраформ мог использовать данные авторизации gcloud, на до выполнить обязательно 
+```
+gcloud auth application-default login
+```
+Подробнее в https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login
+
 ## В директории terraform созданы:
 
 files - директория с deploy.sh  puma.service, файлами для деплоя приложения и запуска через systemd
