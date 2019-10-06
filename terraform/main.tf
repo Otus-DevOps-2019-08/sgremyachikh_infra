@@ -42,11 +42,11 @@ resource "google_compute_instance" "app" {
   }
   connection {
     type  = "ssh"
-    host  = "self.network_interface[0].access_config[0].nat_ip"
+    host  = self.network_interface[0].access_config[0].nat_ip
     user  = "decapapreta"
     agent = false
     # путь до приватного ключа
-    private_key = "${file(var.connection_key)}"
+    private_key = file(var.connection_key)
   }
   # провижн путем копирования юнита в системд
   provisioner "file" {
