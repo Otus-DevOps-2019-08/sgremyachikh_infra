@@ -4,7 +4,7 @@ variable project {
 variable region {
   description = "Region"
   # Значение по умолчанию
-  default = "europe-west1-b"
+  default = "europe-west1"
 }
 variable public_key_path {
   # Описание переменной
@@ -20,9 +20,3 @@ variable instance_zone {
   description = "instance creation zone"
   default     = "europe-west1-b"
 }
-
-variable "app_port" {
-  description = "reddit-hc port"  
-  default = 9292
-}
-

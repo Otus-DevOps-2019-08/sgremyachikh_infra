@@ -5,10 +5,12 @@ terraform {
 
 provider "google" {
   # Версия провайдера
-  version = "~> 2.7"
+  version = "2.15"
+
   # ID проекта
-  project = "${var.project}"
-  region = "${var.region}"
+  project = var.project
+
+  region = var.region
 }
 
 # Добавляю глобальную метадату в виде ключей своего юзера
@@ -17,17 +19,14 @@ resource "google_compute_project_metadata_item" "ssh-keys" {
   value = "decapapreta:${file(var.public_key_path)} appuser1:${file(var.public_key_path)} appuser2:${file(var.public_key_path)}"
 }
 
-
-### app
 resource "google_compute_instance" "app" {
-  count = 2
-  name         = "reddit-app-${count.index}"
+  name         = "reddit-app"
   machine_type = "g1-small"
-  zone         = "${var.instance_zone}"
+  zone         = var.instance_zone
   tags         = ["reddit-app"]
   boot_disk {
     initialize_params {
-      image = "${var.disk_image}"
+      image = var.disk_image
     }
   }
 
@@ -42,30 +41,21 @@ resource "google_compute_instance" "app" {
   }
   connection {
     type  = "ssh"
-    host  = "self.network_interface[0].access_config[0].nat_ip"
+    host  = self.network_interface[0].access_config[0].nat_ip
     user  = "decapapreta"
     agent = false
     # путь до приватного ключа
-    private_key = "${file(var.connection_key)}"
+    private_key = file(var.connection_key)
   }
-  # провижн путем копирования юнита в системд
   provisioner "file" {
     source      = "files/puma.service"
     destination = "/tmp/puma.service"
   }
-  # провижн путем выполнения скрипта деплоя
   provisioner "remote-exec" {
     script = "files/deploy.sh"
   }
-  
-  # зависимости добавил
-  depends_on = [
-    "google_compute_firewall.firewall_puma",
-    "google_compute_firewall.firewall_ssh"
-  ]
 }
-
-# tcp 9292
+# Создаю правило на фаере
 resource "google_compute_firewall" "firewall_puma" {
   name = "allow-puma-default"
   # Название сети, в которой действует правило
@@ -81,7 +71,7 @@ resource "google_compute_firewall" "firewall_puma" {
   target_tags = ["reddit-app"]
 }
 
-# ssh
+# Создаю правило для 22 порта
 resource "google_compute_firewall" "firewall_ssh" {
   name = "default-allow-ssh"
   network = "default"
@@ -93,4 +83,3 @@ resource "google_compute_firewall" "firewall_ssh" {
 
   source_ranges = ["0.0.0.0/0"]
 }
-
