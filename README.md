@@ -132,7 +132,14 @@ image_family у получившегося reddit-full, дополнительн
 
 create-redditvm.sh в директории config-scripts запустит виртуальную машину из образа подготовленного в рамках этого ДЗ, из семейства reddit-full, запустит приложение в ВМ и создаст правило на фаерволе, если вдруг его нет.
 
+
 # HW : Практика Infrastructure as a Code (IaC)
+
+### Дисклеймер: чтоб терраформ мог использовать данные авторизации gcloud, на до выполнить обязательно 
+```
+gcloud auth application-default login
+```
+Подробнее в https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login
 
 ## В директории terraform созданы:
 
