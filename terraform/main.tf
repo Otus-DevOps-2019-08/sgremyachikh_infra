@@ -5,12 +5,10 @@ terraform {
 
 provider "google" {
   # Версия провайдера
-  version = "2.15"
-
+  version = "~> 2.7"
   # ID проекта
-  project = var.project
-
-  region = var.region
+  project = "${var.project}"
+  region = "${var.region}"
 }
 
 # Добавляю глобальную метадату в виде ключей своего юзера
@@ -19,14 +17,17 @@ resource "google_compute_project_metadata_item" "ssh-keys" {
   value = "decapapreta:${file(var.public_key_path)} appuser1:${file(var.public_key_path)} appuser2:${file(var.public_key_path)}"
 }
 
+
+### app
 resource "google_compute_instance" "app" {
-  name         = "reddit-app"
+  count = 2
+  name         = "reddit-app-${count.index}"
   machine_type = "g1-small"
-  zone         = var.instance_zone
+  zone         = "${var.instance_zone}"
   tags         = ["reddit-app"]
   boot_disk {
     initialize_params {
-      image = var.disk_image
+      image = "${var.disk_image}"
     }
   }
 
@@ -47,15 +48,18 @@ resource "google_compute_instance" "app" {
     # путь до приватного ключа
     private_key = file(var.connection_key)
   }
+  # провижн путем копирования юнита в системд
   provisioner "file" {
     source      = "files/puma.service"
     destination = "/tmp/puma.service"
   }
+  # провижн путем выполнения скрипта деплоя
   provisioner "remote-exec" {
     script = "files/deploy.sh"
   }
 }
-# Создаю правило на фаере
+
+# tcp 9292
 resource "google_compute_firewall" "firewall_puma" {
   name = "allow-puma-default"
   # Название сети, в которой действует правило
@@ -69,5 +73,18 @@ resource "google_compute_firewall" "firewall_puma" {
   source_ranges = ["0.0.0.0/0"]
   # Правило применимо для инстансов с перечисленными тэгами
   target_tags = ["reddit-app"]
+}
+
+# ssh
+resource "google_compute_firewall" "firewall_ssh" {
+  name = "default-allow-ssh"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
 }
 
