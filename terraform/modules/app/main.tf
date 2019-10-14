@@ -21,9 +21,30 @@ resource "google_compute_instance" "app" {
     ssh-keys = "decapapreta:${file(var.public_key_path)}"
 
   }
+  # Хитро передаю значение переменной из модуля db в файл для дальнейшей магии деплоя
+  provisioner "file" {
+    content      = "DATABASE_URL=${var.database_url}"
+    destination = "/tmp/puma.env"
+  }
+  # Тут через интерполяцию указываю путь, файл-шаблон для создания юнита системд, что копируем его внутрь в /tmp
+  provisioner "file" {
+    source      = "${path.module}/files/puma.service.tmpl"
+    destination = "/tmp/puma.service.tmpl"
+  }
+  # А тут вот запускается наш скрипт деплоя, формирующий в ВМ юнит-файл с нужным содержимым и запускающий установленное приложение
+  provisioner "remote-exec" {
+    script = "${path.module}/files/deploy.sh"
+  }
+  connection {
+    type        = "ssh"
+    host        = self.network_interface[0].access_config[0].nat_ip
+    user        = "decapaprata"
+    agent       = true
+    private_key = file(var.connection_key)
+  }
 }
 
-# создаю внешний ip
+# создаю внешний ip этой ВМ
 resource "google_compute_address" "app_ip" {
   name = "reddit-app-ip"
 }

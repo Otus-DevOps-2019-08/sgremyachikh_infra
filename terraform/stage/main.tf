@@ -19,6 +19,8 @@ module "app" {
   zone            = var.zone
   app_disk_image  = var.app_disk_image
   machine_type    = var.machine_type
+  # В эту переменную получаю от модуля db айпишник инстанса с БД
+  database_url    = "${module.db.db_instance_ip}:27017"
 }
 
 # модуль для поднятия ВМ для монги 

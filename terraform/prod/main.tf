@@ -18,7 +18,9 @@ module "app" {
   public_key_path = var.public_key_path
   zone            = var.zone
   app_disk_image  = var.app_disk_image
-  machine_type    = "g1-small"
+  machine_type    = var.machine_type
+  # В эту переменную получаю от модуля db айпишник инстанса с БД
+  database_url    = "${module.db.db_instance_ip}:27017"
 }
 
 # модуль для поднятия ВМ для монги 
@@ -27,7 +29,7 @@ module "db" {
   public_key_path = var.public_key_path
   zone            = var.zone
   db_disk_image   = var.db_disk_image
-  machine_type    = "g1-small"
+  machine_type    = var.machine_type
 }
 
 # модуль для доступа ко всем ВМ по 22 порту ssh
