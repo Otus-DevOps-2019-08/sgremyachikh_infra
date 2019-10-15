@@ -35,7 +35,7 @@ module "db" {
 # модуль для доступа ко всем ВМ по 22 порту ssh
 module "vpc" {
   source        = "../modules/vpc"
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = var.source_ranges
 }
 
 # Добавляю глобальную метадату в виде ключей своего юзера
