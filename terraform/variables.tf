@@ -5,7 +5,8 @@ variable project {
 # region
 variable region {
   description = "Region"
-  default     = "europe-west1-b"
+  # Значение по умолчанию
+  default = "europe-west1-b"
 }
 # путь до публичного ключа
 variable public_key_path {
