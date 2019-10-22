@@ -1,0 +1,58 @@
+---
+- name: Configure hosts and deploy app
+  hosts: all
+  vars:
+    mongo_bind_ip: 0.0.0.0
+    db_host: 10.132.15.200 # адрес виртуалки бд в облаке гугла, на который будет ходить апликуха
+  tasks:  #  тут у нас блок с переменными
+    - name: Change mongo config file
+      become: true # рута включаем
+      template: 
+        src: templates/mongo.conf.j2 # исходный шаблон в джиндже
+        dest: /etc/mongod.conf # заменяемый конфиг
+        mode: 0644 #  чмод
+      tags: db-tag # можно дергать таски по тегам или хегндлеры с тасок))
+      notify: restart mongod
+
+    - name: add unite file for puma 
+      become: true
+      copy:
+        src: files/puma.service
+        dest: /etc/systemd/system/puma.service
+      tags: app-tag
+      notify: reload puma
+
+    - name: copy config for DB connection
+      template:
+        src: templates/db_config.j2
+        dest: /home/decapapreta/db_config
+      tags: app-tag
+
+    - name: enable puma
+      become: true
+      systemd: name=puma enabled=yes # модно дергаю системд
+      tags: app-tag
+    
+    - name: fetch latest version of app
+      git:
+        repo: 'https://github.com/express42/reddit.git' # repo
+        dest: /home/decapapreta/reddit
+        version: monolith # branch_name
+      tags: deploy-tag
+      notify: reload puma
+
+    - name: bundle install
+      bundler: 
+        state: present
+        chdir: /home/decapapreta/reddit
+      tags: deploy-tag
+
+  handlers: # <-- Добавим блок handlers и задачу
+    - name: restart mongod
+      become: true
+      service: name=mongod state=restarted # service используется для инитд систем и прочего легаси
+
+    - name: reload puma
+      become: true
+      systemd: name=puma state=restarted
+...
