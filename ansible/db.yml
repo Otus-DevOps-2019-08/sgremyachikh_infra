@@ -1,0 +1,18 @@
+---
+- name: Configure mongo DB
+  hosts: db
+  become: true
+  vars:
+    mongo_bind_ip: 0.0.0.0
+  tasks:  #  тут у нас блок с переменными
+    - name: Change mongo config file
+      template: 
+        src: templates/mongod.conf.j2 # исходный шаблон в джиндже
+        dest: /etc/mongod.conf # заменяемый конфиг
+        mode: 0644 #  чмод
+      notify: restart mongod
+
+  handlers: # <-- Добавим блок handlers и задачу
+    - name: restart mongod
+      service: name=mongod state=restarted # service используется для инитд систем и прочего легаси
+... 

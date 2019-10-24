@@ -1,0 +1,27 @@
+---
+- name: Configure app
+  hosts: app
+  become: true
+  vars:  #  тут у нас блок с переменными
+    db_host: 10.132.15.204 # адрес виртуалки бд в облаке гугла, на который будет ходить апликуха
+  tasks:
+    - name: add unite file for puma 
+      copy:
+        src: files/puma.service
+        dest: /etc/systemd/system/puma.service
+      notify: reload puma
+
+    - name: copy config for DB connection
+      template:
+        src: templates/db_config.j2
+        dest: /home/decapapreta/db_config
+        owner: decapapreta
+        group: decapapreta
+    
+    - name: enable puma
+      systemd: name=puma enabled=yes # модно дергаю системд
+      
+  handlers: # <-- Добавим блок handlers и задачу
+    - name: reload puma
+      systemd: name=puma state=restarted
+... 
