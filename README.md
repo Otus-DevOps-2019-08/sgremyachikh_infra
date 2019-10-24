@@ -270,9 +270,9 @@ terraform {
 
 # HW : Управление конфигурацией. Знакомство с Ansible.
 
-## Создана ветка ansible-1
+### Создана ветка ansible-1
 
-# Было сделано в основной части:
+## Было сделано в основной части:
 
 Установка Ansible (ну тут все просто без подробностей)
 
@@ -286,4 +286,88 @@ terraform {
 
 ## Задание со зведочкой не выполнено.
 
-# HW : Практика Расширенные возможности Ansible
+--------------------------
+# HW : #11 Практика Расширенные возможности Ansible или Продолжение знакомства с Ansible: templates, handlers, dynamic inventory, vault, tags.
+
+### Создана ветка ansible-2
+
+## Было сделано в основной части:
+
+Добавили в .gitignore *.retry чтоб случайно лишнее не поехало в гит
+Были использованы 3 подхода для реализации провижина и деплоя:
+ - все в одном плейбуке с одним большим плеем (теги у тасок)
+ - все в одном плейбуке с множеством плеев (теги у плеев)
+ - вариант с главным плейбуком  и подчиненными
+
+Для озакомления использовались tags, handlers, templates.
+
+### Для преминения каждого подхода нужно использовать свои приемы.
+
+Для плейбука с одним плеем и множеством tags, чтоб применить изменения с нужными тегами, нужно выполнить следующее:
+```
+ansible-playbook reddit_app.yml --limit <host_group> --tags <tag>
+```
+Для плейбука с множеством плеев и множеством tags, чтоб применить изменения c нужными тегами, нужно выполнить следующее:
+```
+ansible-playbook reddit_app2.yml --tags <tag>
+```
+Для плейбука с импортом других плейбуков все еще проще:
+```
+ansible-playbook site.yml
+```
+## Задание со звездочкой: возможности использования dynamic inventory для GCP
+
+я использовал вариант с оригинальным плагином для инвентори в GCP: https://docs.ansible.com/ansible/latest/plugins/inventory/gcp_compute.html
+
+Условия:
+ - Должен быть создан сервисный акк в GCP
+ - Cоздан файла инвентори формата, описанного в доке
+ - Установлены компоненты для авторизации ansible в GCP для python, от которого работает и был установлен ansible:
+ ```
+pip install requests
+pip install google-auth
+```
+Далее нашпиговываю файл inventory.compute.gcp.yml тем, что нужно мне для генерации инвентори, групп и преферанса.
+```
+plugin: gcp_compute
+projects: # имя проекта в GCP
+  - balmy-elevator-253219 
+regions: # регионы моих виртуалок
+  - europe-west1
+keyed_groups: # на основе чего хочу группировать
+    - key: name
+groups: # хочу свои группы с блэкджеком и пилить их буду на основании присутствия частичек нужных в именах
+  app: "'app' in name"
+  db: "'db' in name"
+hostnames: #хостнейм приятнее айпишника, НО без compose не взлетало
+  # List host by name instead of the default public ip
+  - name
+compose: #
+  # Тутустанвливается параметр сопоставления публичного IP и хоста
+  # Для ip из LAN использовать "networkInterfaces[0].networkIP"
+  ansible_host: networkInterfaces[0].accessConfigs[0].natIP
+filters: []
+auth_kind: serviceaccount # тип авторизации
+service_account_file: ~/.gcp/balmy-elevator-253219.json # мой секретный ключ от сервисного акка
+
+```
+
+Сам инвентори могу закинуть потом в конфиг моего ансибла чтоб всегда не париться далее:)
+Проверяю работу инвентори:
+```
+ansible-inventory -i inventory.compute.gcp.yml --graph
+```
+Возникла проблема - нужно было передать приложению параметр IP монги, чтоб не писать его в плейбук руками всякий раз.
+В этой задаче на помощь пришли https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#accessing-information-about-other-hosts-with-magic-variables
+В файл db_config.j2 вписал для получения адреса: 
+```
+DATABASE_URL={{ hostvars[groups['db'][0]]['ansible_default_ipv4']['address'] }} 
+```
+это позволило получить LAN ip машины из группы db.
+
+## Задание с packer
+
+созданы 2 плейбука для провижиненга образов пакера
+информация о них добавлена в файлы образов пакера, собраны новыеобразы в GCP
+reddit-app-base
+reddit-base-db
