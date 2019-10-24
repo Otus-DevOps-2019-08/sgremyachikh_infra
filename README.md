@@ -367,7 +367,13 @@ DATABASE_URL={{ hostvars[groups['db'][0]]['ansible_default_ipv4']['address'] }}
 
 ## Задание с packer
 
-созданы 2 плейбука для провижиненга образов пакера
+созданы 2 плейбука для провижиненга образов пакера:
 информация о них добавлена в файлы образов пакера, собраны новыеобразы в GCP
+```
+packer build -var-file variables.json app.json
+packer build -var-file variables.json db.json
+```
+артефакты:
 reddit-app-base
 reddit-base-db
+На базе этих образов развернута инфраструктура, прокатанная ансиблом и проверенная на работоспособность.
