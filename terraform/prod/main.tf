@@ -30,7 +30,7 @@ module "db" {
   zone            = var.zone
   db_disk_image   = var.db_disk_image
   machine_type    = var.machine_type
-  environment     =  var.environment
+  environment     = var.environment
 }
 
 # модуль для доступа ко всем ВМ по 22 порту ssh

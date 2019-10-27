@@ -39,4 +39,14 @@ resource "google_compute_firewall" "firewall_puma" {
   source_ranges = var.source_ranges
   target_tags   = ["reddit-app"]
 }
- 
+# правило открытия порта 80 на ВМ с приложением
+resource "google_compute_firewall" "firewall_nginx" {
+  name    = "allow-nginx-80-${var.environment}"
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+  source_ranges = var.source_ranges
+  target_tags   = ["reddit-app"]
+}
