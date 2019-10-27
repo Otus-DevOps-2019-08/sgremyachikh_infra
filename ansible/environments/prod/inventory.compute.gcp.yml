@@ -6,8 +6,8 @@ regions: # регионы моих виртуалок
 keyed_groups: # на основе чего хочу группировать
     - key: name
 groups: # хочу свои группы с блэкджеком и пилить их буду на основании присутствия частичек нужных в именах
-  app: "'app' in name"
-  db: "'db' in name"
+  app: "'app-prod' in name"
+  db: "'db-prod' in name"
 hostnames: #хостнейм приятнее айпишника, НО без compose не взлетало
   # List host by name instead of the default public ip
   - name

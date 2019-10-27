@@ -377,3 +377,61 @@ packer build -var-file variables.json db.json
 reddit-app-base
 reddit-base-db
 На базе этих образов развернута инфраструктура, прокатанная ансиблом и проверенная на работоспособность.
+
+-------------------------------------
+# HW : #12 Принципы организации кода для управления конфигурацией. Ansible: работа с ролями и окружениями.
+
+## Помимо основного ДЗ решил сделать вот что:
+
+При создании роли app в db_config.j2 вернул стандартное DATABASE_URL={{ db_host }}, чтоб не бралось значение ip из magic viriables - роль должна быть переиспользуема. Но в плейбуке app.yml уже указывал ip db через них, чтоб не прописывать всякий раз:
+```
+vars:
+    db_host: "{{ hostvars[groups['db'][0]]['ansible_default_ipv4']['address'] }}"
+```
+как видно - конструкцию извлечения из фактов нужного ip надо брать в кавычки чтоб пройти успешно --check нашего плейбука.
+
+## Касаясь стейджинга захотелось красивее имена хостов и специфичнее динамик инвентори файл:
+
+В модулях terraform app и db были изменены названия виртуалок и прочих создаваемых ресурсов по аналогии с:
+```
+resource "google_compute_instance" "app" {
+  name         = "reddit-app-${var.environment}"
+```
+и
+```
+resource "google_compute_instance" "db" {
+  name         = "reddit-db-${var.environment}"
+```
+в переменные модулей variables.tf
+добавлено:
+```
+variable "environment" {
+  description = "environment type"  
+}
+```
+в основной файл инфраструктуры main.tf добавлено в параметры модулей:
+```
+environment = var.environment
+```
+В файл с переменными terraform.tfvars так же внесены значения энвайронментов каждого из окружений. 
+
+Эти изменения в инфраструктуре были необходимы для дальшейшего более комфортного использования динамк инвентори. В самом инвентори теперь формирование групп для stage окружения выглядит вот как:
+```
+plugin: gcp_compute
+projects: # имя проекта в GCP
+  - balmy-elevator-253219 
+regions: # регионы моих виртуалок
+  - europe-west1
+keyed_groups: # на основе чего хочу группировать
+    - key: name
+groups: 
+  app: "'app-stage' in name" # <- вот тут видно. что для создания групп данного окружения я отсекаю машины с содержанием в именах названия энвайронмента 
+  db: "'db-stage' in name" # тут, соответственно, так же
+hostnames:
+  - name
+compose: #
+  ansible_host: networkInterfaces[0].accessConfigs[0].natIP
+filters: []
+auth_kind: serviceaccount
+service_account_file: ~/.gcp/balmy-elevator-253219.json
+```
