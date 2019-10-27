@@ -4,7 +4,7 @@
   debug:
     msg: "This host is in {{ env }} environment!!!"
 
-- name: add unite file for puma 
+- name: add unite file for puma
   copy:
     src: puma.service
     dest: /etc/systemd/system/puma.service
