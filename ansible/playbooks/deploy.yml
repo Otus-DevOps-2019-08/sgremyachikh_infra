@@ -10,12 +10,12 @@
       notify: reload puma
 
     - name: bundle install
-      bundler: 
+      bundler:
         state: present
         chdir: /home/decapapreta/reddit
-      
+
   handlers: # <-- Добавим блок handlers и задачу
     - name: reload puma
       become: true
       systemd: name=puma state=restarted
-... 
+...

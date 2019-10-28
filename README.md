@@ -272,13 +272,11 @@ terraform {
 Провижн образов.
 Тут был конечно квест. Что-то не взлетело. Провижинер пытался подключиться снова и снова, но не получалось. Закомментировал потуги.
 
---------------------------------------------
 # HW : Управление конфигурацией. Знакомство с Ansible.
 
 ### Создана ветка ansible-1
 
 ## Было сделано в основной части:
-
 
 Установка Ansible (ну тут все просто без подробностей)
 
@@ -291,7 +289,6 @@ terraform {
 Пишем простой плейбук (clone.yml)
 
 ## Задание со зведочкой не выполнено.
-
 
 --------------------------
 # HW : #11 Практика Расширенные возможности Ansible или Продолжение знакомства с Ansible: templates, handlers, dynamic inventory, vault, tags.
@@ -385,3 +382,267 @@ reddit-app-base
 reddit-base-db
 На базе этих образов развернута инфраструктура, прокатанная ансиблом и проверенная на работоспособность.
 
+-------------------------------------
+# HW : Принципы организации кода для управления конфигурацией. Ansible: работа с ролями и окружениями.
+
+## Суть задания со звездочкой пришла на ум сразу же. Выполнял его параллельно с основной домашкой:
+
+При создании роли app в db_config.j2 вернул стандартное DATABASE_URL={{ db_host }}, чтоб не бралось значение ip из magic viriables - роль должна быть переиспользуема. Использовал мэджик переменные в переменной группы хостов app:
+```
+db_host: "{{ hostvars[groups['db'][0]]['ansible_default_ipv4']['address'] }}"
+
+```
+как видно - конструкцию извлечения из фактов нужного ip надо брать в кавычки чтоб пройти успешно --check нашего плейбука.
+
+## Касаясь стейджинга - захотелось красивее имена хостов и специфичнее динамик инвентори файл:
+
+В модулях terraform app и db были изменены названия виртуалок и прочих создаваемых ресурсов по аналогии с:
+```
+resource "google_compute_instance" "app" {
+  name         = "reddit-app-${var.environment}"
+```
+и
+```
+resource "google_compute_instance" "db" {
+  name         = "reddit-db-${var.environment}"
+```
+в переменные модулей variables.tf
+добавлено:
+```
+variable "environment" {
+  description = "environment type"  
+}
+```
+в основной файл инфраструктуры main.tf добавлено в параметры модулей:
+```
+environment = var.environment
+```
+В файл с переменными terraform.tfvars так же внесены значения энвайронментов каждого из окружений. 
+
+Эти изменения в инфраструктуре были необходимы для дальшейшего более комфортного использования динамк инвентори. В самом инвентори теперь формирование групп для stage окружения выглядит вот как:
+```
+plugin: gcp_compute
+projects: # имя проекта в GCP
+  - balmy-elevator-253219 
+regions: # регионы моих виртуалок
+  - europe-west1
+keyed_groups: # на основе чего хочу группировать
+    - key: name
+groups: 
+  app: "'app-stage' in name" # <- вот тут видно. что для создания групп данного окружения я отсекаю машины с содержанием в именах названия энвайронмента 
+  db: "'db-stage' in name" # тут, соответственно, так же
+hostnames:
+  - name
+compose: #
+  ansible_host: networkInterfaces[0].accessConfigs[0].natIP
+filters: []
+auth_kind: serviceaccount
+service_account_file: ~/.gcp/balmy-elevator-253219.json
+```
+В результате я могу создавать одновременно 2 вида окружения и терраформом и прокатывать ансиблом.
+
+## Основная часть домашки:
+
+Создал ветку ansible-3
+
+Создал директорию ролей и в ней шаблоны роли через
+```
+ansible-galaxy init app
+ansible-galaxy init db
+```
+Перенес код в разные части шаблонов ролей
+
+Файлы j2 были перемещены в templates ролей
+
+Переделали плейбуки app.yml и db.yml в вызывающие роли
+
+Создал директории окружений со своими инвентори
+
+Прописал в ansible.cfg по умолчанию инвентори stage
+
+Создал в директориях окружений директории group_vars с переменными групп хостов
+
+Добавил переменные к группе all у обоих окружений:
+```
+env: stage
+```
+у прода, соответственно prod значение.
+
+Определил переменную оружения по умолчанию в используемых ролях в mail.yml
+```
+env: local
+```
+Добавил вывод информации об окружении в каждой из ролей путем добавления в таски первой:
+```
+- name: Show info about the env this host belongs to
+  debug:
+    msg: "This host is in {{ env }} environment!!!"
+```
+Реорганизовал репозиторий:
+```
+.
+├── ansible.cfg
+├── environments
+│   ├── prod
+│   │   ├── credentials.yml
+│   │   ├── group_vars
+│   │   │   ├── all
+│   │   │   ├── app
+│   │   │   └── db
+│   │   ├── inventory.compute.gcp.yml
+│   │   └── requirements.yml
+│   └── stage
+│       ├── credentials.yml
+│       ├── group_vars
+│       │   ├── all
+│       │   ├── app
+│       │   └── db
+│       ├── inventory.compute.gcp.yml
+│       └── requirements.yml
+├── old
+│   ├── files
+│   │   └── puma.service
+│   ├── inventory
+│   ├── inventory.compute.gcp.yml
+│   ├── inventory.yml
+│   └── templates
+│       ├── db_config.j2
+│       └── mongod.conf.j2
+├── playbooks
+│   ├── app.yml
+│   ├── clone.yml
+│   ├── db.yml
+│   ├── deploy.yml
+│   ├── packer_app.yml
+│   ├── packer_db.yml
+│   ├── reddit_app_multiple_plays.yml
+│   ├── reddit_app_one_play.yml
+│   ├── site.yml
+│   └── users.yml
+├── requirements.txt
+└── roles
+    ├── app
+    │   ├── defaults
+    │   │   └── main.yml
+    │   ├── files
+    │   │   └── puma.service
+    │   ├── handlers
+    │   │   └── main.yml
+    │   ├── meta
+    │   │   └── main.yml
+    │   ├── README.md
+    │   ├── tasks
+    │   │   └── main.yml
+    │   ├── templates
+    │   │   └── db_config.j2
+    │   ├── tests
+    │   │   ├── inventory
+    │   │   └── test.yml
+    │   └── vars
+    │       └── main.yml
+    ├── db
+    │   ├── defaults
+    │   │   └── main.yml
+    │   ├── files
+    │   ├── handlers
+    │   │   └── main.yml
+    │   ├── meta
+    │   │   └── main.yml
+    │   ├── README.md
+    │   ├── tasks
+    │   │   └── main.yml
+    │   ├── templates
+    │   │   └── mongod.conf.j2
+    │   ├── tests
+    │   │   ├── inventory
+    │   │   └── test.yml
+    │   └── vars
+    │       └── main.yml
+    └── jdauphant.nginx
+        Содержимое этой роли я скрыл за ненадобностью
+``` 
+В корне папки ansible из файлов остаются только ansible.cfg и requirements.txt
+
+Последовал рекомендации по твику ansible.cfg
+
+На каждом этапе я тестировал изменения командами:
+```
+cd ~/OTUS/sgremyachikh_infra/terraform/stage/
+terraform destroy
+terraform plan
+terraform apply -auto-approve=false
+cd ~/OTUS/sgremyachikh_infra/ansible/
+ansible-playbook playbooks/site.yml --check
+ansible-playbook playbooks/site.yml
+```
+Заходил на 9292 порт внешнего ip сервера приложения
+
+Работа с community-ролями. Создал requirements.yml c описанием jdauphant.nginx нужной роли
+
+установил ее:
+```
+ansible-galaxy install -r environments/stage/requirements.yml
+```
+Добавил необходимую инфу в переменные группы хостов app:
+```
+nginx_sites:
+  default:
+    - listen 80
+    - server_name "reddit"
+    - location / {
+        proxy_pass http://127.0.0.1:9292;
+        }
+```
+Добавил в конфигурацию Terraform открытие 80 порта для инстанса приложения.
+В модуль создания ресурсов виртуалки приложения main.tf добавил:
+```
+# правило открытия порта 80 на ВМ с приложением
+resource "google_compute_firewall" "firewall_nginx" {
+  name    = "allow-nginx-80-${var.environment}"
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+  source_ranges = var.source_ranges
+  target_tags   = ["reddit-app"]
+}
+```
+Добавил вызов роли jdauphant.nginx в плейбук app.yml:
+```
+---
+- name: Configure app
+  hosts: app
+  become: true
+
+  roles:
+    - app
+    - jdauphant.nginx
+...
+```
+Применил плейбук site.yml и убедился в работе приложения на 80 порту.
+
+Создал файл ключа vault ВНЕ репозитория. Указал его для использования в ansible.cfg
+
+Создал плейбук users.yml для соданию юзеров ОС на серверах и внесения их в группы sudo опционально.
+
+Для каждого окружения создан credentials.yml с соответственным содержимым.
+
+Оба они зашифрованы при помощи vault:
+```
+ansible-vault encrypt environments/prod/credentials.yml
+ansible-vault encrypt environments/stage/credentials.yml
+```
+Проверил зашифрованность вайлов. Добавил вызов плейбука в файл site.yml и проверил работоспособность для обоих окружений удачность развертывания и созлание пользователей.
+
+Проверил созданных пользователей. Вход по паролю на инстансах GCE отключен по-умолчанию. Я вошел appuser-ом по ssh на каждый сервер по сертификатам. Попробовал:
+```
+su admin
+```
+или 
+```
+su qauser
+```
+и успешно авторизовался.
+
+Задание с 2 звездами выполнять не стал.

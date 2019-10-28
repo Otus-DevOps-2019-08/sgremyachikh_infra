@@ -1,6 +1,6 @@
 # Создание виртуалки
 resource "google_compute_instance" "app" {
-  name         = "reddit-app"
+  name         = "reddit-app-${var.environment}"
   machine_type = var.machine_type
   zone         = var.zone
   tags         = ["reddit-app"]
@@ -21,37 +21,16 @@ resource "google_compute_instance" "app" {
     ssh-keys = "decapapreta:${file(var.public_key_path)}"
 
   }
-  ## # Хитро передаю значение переменной из модуля db в файл для дальнейшей магии деплоя
-  ## provisioner "file" {
-  ##   content      = "DATABASE_URL=${var.database_url}"
-  ##   destination = "/tmp/puma.env"
-  ## }
-  ## # Тут через интерполяцию указываю путь, файл-шаблон для создания юнита системд, что копируем его внутрь в /tmp
-  ## provisioner "file" {
-  ##   source      = "${path.module}/files/puma.service.tmpl"
-  ##   destination = "/tmp/puma.service.tmpl"
-  ## }
-  ## # А тут вот запускается наш скрипт деплоя, формирующий в ВМ юнит-файл с нужным содержимым и запускающий установленное приложение
-  ## provisioner "remote-exec" {
-  ##   script = "${path.module}/files/deploy.sh"
-  ## }
-  ## connection {
-  ##   type        = "ssh"
-  ##   host        = self.network_interface[0].access_config[0].nat_ip
-  ##   user        = "decapaprata"
-  ##   agent       = false
-  ##   private_key = file(var.connection_key)
-  ## }
 }
 
 # создаю внешний ip этой ВМ
 resource "google_compute_address" "app_ip" {
-  name = "reddit-app-ip"
+  name = "reddit-app-ip-${var.environment}"
 }
 
 # правило открытия порта 9292 на ВМ с приложением
 resource "google_compute_firewall" "firewall_puma" {
-  name    = "allow-puma-default"
+  name    = "allow-puma-default-${var.environment}"
   network = "default"
   allow {
     protocol = "tcp"
@@ -60,4 +39,14 @@ resource "google_compute_firewall" "firewall_puma" {
   source_ranges = var.source_ranges
   target_tags   = ["reddit-app"]
 }
- 
+# правило открытия порта 80 на ВМ с приложением
+resource "google_compute_firewall" "firewall_nginx" {
+  name    = "allow-nginx-80-${var.environment}"
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+  source_ranges = var.source_ranges
+  target_tags   = ["reddit-app"]
+}

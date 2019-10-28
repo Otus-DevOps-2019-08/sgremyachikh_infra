@@ -18,3 +18,6 @@ variable machine_type {
   description = "type of instance"
   default     = "g1-small"
 }
+variable "environment" {
+  description = "environment type"  
+}

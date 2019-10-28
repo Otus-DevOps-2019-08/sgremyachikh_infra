@@ -19,7 +19,7 @@ module "app" {
   zone            = var.zone
   app_disk_image  = var.app_disk_image
   machine_type    = var.machine_type
-  # В эту переменную получаю от модуля db айпишник инстанса с БД
+  environment     = var.environment
   database_url    = "${module.db.db_instance_ip}:27017"
 }
 
@@ -30,12 +30,14 @@ module "db" {
   zone            = var.zone
   db_disk_image   = var.db_disk_image
   machine_type    = var.machine_type
+  environment     = var.environment
 }
 
 # модуль для доступа ко всем ВМ по 22 порту ssh
 module "vpc" {
   source        = "../modules/vpc"
   source_ranges = var.source_ranges
+  environment   = var.environment
 }
 
 # Добавляю глобальную метадату в виде ключей своего юзера
