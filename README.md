@@ -328,8 +328,8 @@ ansible-playbook site.yml
  - Cоздан файла инвентори формата, описанного в доке
  - Установлены компоненты для авторизации ansible в GCP для python, от которого работает и был установлен ansible:
  ```
-pip install requests
-pip install google-auth
+sudo pip3 install requests
+sudo pip3 install google-auth
 ```
 Далее нашпиговываю файл inventory.compute.gcp.yml тем, что нужно мне для генерации инвентори, групп и преферанса.
 ```
@@ -646,3 +646,104 @@ su qauser
 и успешно авторизовался.
 
 Задание с 2 звездами выполнять не стал.
+
+----------------------------------------------
+# HW: Локальная разработка Ansible ролей с Vagrant. Тестирование конфигурации. Разработка и тестирование Ansible ролей и плейбуков.
+
+## Создал ветку репозитория ansible-4
+
+Установил vagrant и VirtualBox
+
+дополнил .gitignore
+```
+# Vagrant & molecule
+.vagrant/
+*.log
+*.pyc
+.molecule
+.cache
+.pytest_cache
+```
+
+Создал Vagrantfile. заполнил когод гиста и запустил, поднялись 2 виртуалки. проверил, что все в них нормально работает.
+Команды, необходимые длябазовой работы с vagrant:
+```
+vagrant up # поднимает описанное в vagrantfile
+vagrant box list # показывает список загруженных образов-боксов
+vagrant status # показывает статус окружения, поднятого из файла Vagrantfile
+vagrant ssh appserver # подключиться по ssh к хосту их описанных в Vagrantfile
+vagrant provision dbserver # запуск провижена без перезапуска ВМ.
+cat .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory
+```
+создал плейбук base.yml, который добавил в site.yml, который изменил с import_playbook на include:
+```
+---
+- include: base.yml
+- include: db.yml
+- include: app.yml
+- include: deploy.yml
+...
+```
+Изменил по методичке роли для app и db, правла пришлось кое-что поменять:
+
+1. include заменить на import_playbook - include уже deprecated. А потом назад на include - vagrand не любит новшеств.
+2. Изменения сделать касаемо ключа репозитория для монги:
+```
+  - name: Add APT key
+    become: true
+    apt_key:
+      url: https://www.mongodb.org/static/pgp/server-3.2.asc
+      state: present
+    tags: install
+```
+так универсальнее.
+
+Вызов инвентори vagrant:
+```
+cat .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory
+```
+Параметризировал роль app вводом переменной deploy_user:
+
+!!! ВАЖНО! Переменная в плейбуках должна браться в кавычках!!! Пример:
+```
+- name: copy config for DB connection
+  template:
+    src: db_config.j2
+    dest: "/home/{{deploy_user}}/db_config"
+    owner: "{{deploy_user}}"
+    group: "{{deploy_user}}"
+```
+в противном случае можно долго плясать по граблям с кавычками.
+
+После провижининга можно войти через браузер на http://10.10.10.20:9292/ и проверить приложение.
+При удалении виртуалок и пересоздании так же можно войти в барузере успешно.
+
+## Задание со звездочкой * .
+
+На предыдущем шаге я сразу же проверил что у нас на 80 порту и увидел там заглушку nginx-а.
+Очевидно, что групварс от окружения у нас не подтянулись.
+Что сделал? поиграл с экстраварс:
+```
+ansible.extra_vars = {
+  "deploy_user" => "ubuntu",
+  "nginx_sites" => {
+    "default" => [
+      "listen 80",
+      "server_name \"reddit\"",
+      "location / {
+        proxy_pass http://127.0.0.1:9292;
+      }"
+    ]
+  }
+}
+```
+!!! Тут важно было замаскировать кавычки! Не брать весь блок нжинкса в кавычки, а сделать это с каждой строкой, через запятую.
+
+Сайт стал открывться на http://10.10.10.20/
+
+## Тестирование роли
+
+Поставим инструменты
+```
+sudo pip3 install molecule testinfra
+```
