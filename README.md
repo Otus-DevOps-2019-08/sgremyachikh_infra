@@ -738,12 +738,193 @@ ansible.extra_vars = {
 }
 ```
 !!! Тут важно было замаскировать кавычки! Не брать весь блок нжинкса в кавычки, а сделать это с каждой строкой, через запятую.
-
+При развернутых виртуалках вагранта наддо выполнить:
+```
+vagrant provision
+```
 Сайт стал открывться на http://10.10.10.20/
+
 
 ## Тестирование роли
 
-Поставим инструменты
+зависимости добавлены в requirements.txt
 ```
-sudo pip3 install molecule testinfra
+ansible>=2.4
+molecule>=2.6
+testinfra>=1.10
+python-vagrant>=0.5.15
+```
+
+Из директории db создал заготовку тестов для роли db:
+```
+molecule init scenario --scenario-name default -r db -d vagrant
+```
+
+Добавил пару тестов из gist в db/molecule/default/tests/test_default.py
+Создал машину для тестирования:
+```
+molecule create
+```
+Вижу инстанс molecule используя команду:
+```
+molecule list
+```
+Для дебага могу войти в него:
+```
+molecule login -h instance
+```
+В molecule-плейбук ansible/roles/db/molecule/default/playbook.yml до бавлены become и переменные
+```
+become: true
+vars:
+  mongo_bind_ip: 0.0.0.0
+```
+Проверка выполнения роли:
+```
+molecule converge
+```
+
+Прогон тестов из tests/test_default.py:
+```
+molecule verify
+```
+Для теста слушаемого порта монги обратился к доке testinfra https://testinfra.readthedocs.io/en/latest/modules.html
+В файл с тестами test_default.py добавлено:
+```
+# mongo port testing on 0.0.0.0:27017
+def test_mongo_socket(host):
+    socket = host.socket("tcp://0.0.0.0:27017")
+    assert socket.is_listening
+```
+
+Убедился в успешности теста путем повторного запуска molecule verify:
+```
+collected 3 items                                                              
+    
+    tests/test_default.py ...                                                [100%]
+    
+    ============================== 3 passed in 2.71s ===============================
+Verifier completed successfully.
+
+```
+
+## Сборка образов пакером с использованием ролей.
+
+Для вызова определенного функционала роли при выполнении сборки образа пакером воспользуюсь тэгами в ./ansible/roles/db/tasks/main.yml
+```
+---
+# tasks file for db
+- name: Show info about the env this host belongs to
+  debug:
+    msg: "This host is in {{ env }} environment!!!"
+
+- include: install_mongo.yml
+  tags:
+    - db_install_mongo
+- include: config_mongo.yml
+  tags:
+    - db_configure_mongo
+...
+```
+
+В плейбуке провижининга пакера ./ansible/playbooks/packer_db.yml уберу таски и вместо них поставлю роль:
+```
+---
+- name: Install MongoDB
+  hosts: all
+  become: true
+  roles:
+    - db
+...
+```
+В файл пакер-образа packer/db.json в секцию provisioners добавлены параметры расположения ролей и тэги нужных инклюдов роли db:
+```
+...
+    	"provisioners": [
+        {
+            "type": "ansible",
+            "playbook_file": "ansible/playbooks/packer_db.yml",
+            "ansible_env_vars": [
+                "ANSIBLE_ROLES_PATH={{ pwd }}/ansible/roles"
+                ],
+            "extra_arguments": [
+                "--tags",
+                "db_install_mongo"
+                ]
+        }
+        ]
+...
+```
+Пояснение:
+ansible_env_vars указывает путь к ролям относительно корня репозитория, откуда запускаем сборку пакера
+В extra_arguments плейбуку передаётся агрумент --tags с указание тегов, которые должны присутствовать на задачах в main.yml
+
+Далее проверяю что я наделал:
+```
+packer validate -var-file ./packer/variables.json ./packer/db.json
+packer build -var-file ./packer/variables.json ./packer/db.json
+```
+Через пару итераций мелкого дебага образ получился нормальный:)
+
+# Сделаю такие же изменения процесса сборки образа для app:
+
+Для вызова определенного функционала роли при выполнении сборки образа пакером воспользуюсь тэгами в ./ansible/roles/app/tasks/main.yml
+```
+---
+# tasks file for app
+- name: Show info about the env this host belongs to
+  debug:
+    msg: "This host is in {{ env }} environment!!!"
+
+- include: ruby.yml
+  tags:
+    - install_ruby
+- include: puma.yml
+  tags:
+    - deploy_puma
+...
+```
+
+В плейбуке провижининга пакера ./ansible/playbooks/packer_app.yml уберу таски и вместо них поставлю роль:
+```
+---
+- name: Install Ruby && Bundler
+  hosts: all
+  become: true
+  roles:
+    - app
+...
+```
+В файл пакер-образа packer/app.json в секцию provisioners добавлены параметры расположения ролей и тэги нужных инклюдов роли app:
+```
+"provisioners": [
+        {
+            "type": "ansible",
+            "playbook_file": "ansible/playbooks/packer_app.yml",
+            "ansible_env_vars": [
+                "ANSIBLE_ROLES_PATH={{ pwd }}/ansible/roles"
+                ],
+            "extra_arguments": [
+                "--tags",
+                "install_ruby"
+                ]
+        }
+        ]
+```
+Проверяю все сделанное:
+```
+packer validate -var-file ./packer/variables.json ./packer/app.json
+packer build -var-file ./packer/variables.json ./packer/app.json
+cd terraform/stage && terraform plan
+terraform apply
+terraform show
+```
+вижу, что что создания инстансов использовались свежие образа, сделанные пакером, продолжаю проверять успешность этих образов:
+```
+cd ../../ansible
+ansible-playbook ./playbooks/site.yml
+```
+Убедился, что сайт успешно открывается.
+```
+cd ../terraform/stage && terraform destroy
 ```

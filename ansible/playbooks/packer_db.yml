@@ -2,30 +2,6 @@
 - name: Install MongoDB
   hosts: all
   become: true
-  tasks:
-  # Добавим ключ репозитория для последующей работы с ним
-  - name: Add APT key
-    apt_key:
-      url: https://www.mongodb.org/static/pgp/server-3.2.asc
-      state: present
-
-  # Подключаем репу монги
-  - name: Add APT repository
-    apt_repository:
-      repo: deb [ arch=amd64,arm64 ] http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse
-      state: present
-      update_cache: yes
-
-  # Выполним установку монги
-  - name: Install mongodb
-    apt:
-      name: mongodb-org
-      state: present
-
-  # Энейблим монгу
-  - name: systemctl enable mongod
-    systemd:
-      name: mongod
-      enabled: yes
-      state: started
+  roles:
+    - db
 ...
