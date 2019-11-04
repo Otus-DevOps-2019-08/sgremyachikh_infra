@@ -8,14 +8,14 @@
       become: true
       git:
         repo: 'https://github.com/express42/reddit.git' # repo
-        dest: "/home/{{deploy_user}}/reddit"
+        dest: "/home/{{ deploy_user }}/reddit"
         version: monolith # branch_name
       notify: reload puma
 
     - name: bundle install
       bundler:
         state: present
-        chdir: "/home/{{deploy_user}}/reddit"
+        chdir: "/home/{{ deploy_user }}/reddit"
 
   handlers: # <-- Добавим блок handlers и задачу
     - name: reload puma
