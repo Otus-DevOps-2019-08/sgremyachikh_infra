@@ -1,0 +1,9 @@
+---
+- name: Change mongo config file
+  template:
+    src: mongod.conf.j2 # исходный шаблон в джиндже
+    dest: /etc/mongod.conf # заменяемый конфиг
+    mode: 0644 #  чмод
+  notify: restart mongod
+  become: true
+...
